@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package NycaTech;
+
+message Location {
+  int64 pos_x = 1;
+  int64 pos_y = 2;
+  int64 pos_z = 3;
+}
+
+message Unit {
+  uint64 id = 1;
+}
+
+message Command {
+  repeated uint64 ids = 1;
+}
+
+message PlayerStatus {
+  int64 health = 1;
+  int64 mana = 2;
+  Location position = 3;
+}
+
+message BenchmarkStreamRequest {
+  Unit player = 1;
+  Unit target = 2;
+  Command command = 3;
+}
+
+message BenchmarkStreamResponse {
+  Location loc = 1;
+  PlayerStatus status = 2;
+}
+
+service BenchmarkService {
+  rpc Stream(stream BenchmarkStreamRequest) returns (stream BenchmarkStreamResponse);
+  rpc Call(BenchmarkStreamRequest) returns (BenchmarkStreamResponse);
+}
