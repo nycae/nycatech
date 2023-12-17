@@ -22,7 +22,7 @@ private:
   Device() = default;
 
 public:
-  VkDevice device;
+  VkDevice     device;
   VulkanQueue* graphicsQueue;
   VulkanQueue* presentQueue;
 };

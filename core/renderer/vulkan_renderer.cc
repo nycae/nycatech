@@ -24,8 +24,6 @@ const Vector layers{
 
 VulkanRenderer::VulkanRenderer(SDL_Window* window)
 {
-  Assert(CreateSwapChain(), "unable to create swapchain");
-  Assert(SetupImageViews(), "unable to create image views");
   Assert(CreateRenderPass(), "unable to create render pass");
   Assert(CreateCommandPool(), "unable to create command pool");
 }
@@ -131,7 +129,8 @@ bool VulkanRenderer::DrawFrame()
   vkWaitForFences(device->device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
   Uint32 imageIndex;
 
-  switch (vkAcquireNextImageKHR(device->device, swapchain->swapchain, UINT64_MAX, imageMutex, VK_NULL_HANDLE, &imageIndex)) {
+  switch (vkAcquireNextImageKHR(
+      device->device, swapchain->swapchain, UINT64_MAX, imageMutex, VK_NULL_HANDLE, &imageIndex)) {
     case VK_SUBOPTIMAL_KHR:
       RecreateSwapChain();
       return true;
@@ -171,9 +170,8 @@ bool VulkanRenderer::DrawFrame()
   switch (vkQueuePresentKHR(device->presentQueue->queue, &presentInfo)) {
     case VK_ERROR_OUT_OF_DATE_KHR:
     case VK_SUBOPTIMAL_KHR:
-      CreateSwapChain();
+      swapchain->Rebuild(physicalDevice, device);
     case VK_SUCCESS:
-      currentFrame = (currentFrame + 1) % 3;
       return true;
     default:
       return false;
@@ -186,58 +184,26 @@ VulkanRenderer* VulkanRenderer::Create(PhysicalDevice* physicalDevice, SwapChain
   renderer->physicalDevice = physicalDevice;
   renderer->swapchain = swapchain;
   renderer->device = device;
-  Assert(renderer->CreateSwapChain(), "unable to create swapchain");
-  Assert(renderer->SetupImageViews(), "unable to create image views");
   Assert(renderer->CreateRenderPass(), "unable to create render pass");
   Assert(renderer->CreateCommandPool(), "unable to create command pool");
   return renderer;
 }
 
-bool VulkanRenderer::CreateSwapChain()
-{
-  Uint32 imageCount;
-  vkGetSwapchainImagesKHR(device->device, swapchain->swapchain, &imageCount, nullptr);
-  queuedFrames.Resize(imageCount);
-  queuedFrames.OverrideCount(imageCount);
-
-  return vkGetSwapchainImagesKHR(device->device, swapchain->swapchain, &imageCount, queuedFrames.Data()) == VK_SUCCESS;
-}
-
-bool VulkanRenderer::SetupImageViews()
-{
-  queuedFrameViews.Resize(queuedFrames.Count());
-  queuedFrameViews.OverrideCount(queuedFrames.Count());
-  for (Uint32 i = 0; i < queuedFrames.Count(); i++) {
-    VkImageViewCreateInfo info{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-    info.image = queuedFrames[i];
-    info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    info.format = swapchain->format.format;
-    info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    info.subresourceRange.baseMipLevel = 0;
-    info.subresourceRange.levelCount = 1;
-    info.subresourceRange.baseArrayLayer = 0;
-    info.subresourceRange.layerCount = 1;
-    if (vkCreateImageView(device->device, &info, nullptr, &queuedFrameViews[i]) != VK_SUCCESS) {
-      return false;
-    }
-  }
-  return true;
-}
-
 bool VulkanRenderer::CreateFrameBuffers()
 {
-  frameBuffer.Resize(queuedFrameViews.Count());
-  frameBuffer.OverrideCount(queuedFrameViews.Count());
-  for (Uint32 i = 0; i < queuedFrameViews.Count(); i++) {
+  frameBuffer.Resize(swapchain->imageViews.Count());
+  frameBuffer.OverrideCount(swapchain->imageViews.Count());
+  for (Uint32 i = 0; i < swapchain->imageViews.Count(); i++) {
     VkFramebufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
     bufferInfo.renderPass = renderPass;
     bufferInfo.attachmentCount = 1;
-    bufferInfo.pAttachments = &queuedFrameViews[i];
+    bufferInfo.pAttachments = &swapchain->imageViews[i];
     bufferInfo.width = swapchain->extent.width;
     bufferInfo.height = swapchain->extent.height;
 #ifdef DEBUG
-    bufferInfo.layers = 1;
+    bufferInfo.layers = VulkanInstance::Layers.Count();
 #endif
+
     if (vkCreateFramebuffer(device->device, &bufferInfo, nullptr, &frameBuffer[i]) != VK_SUCCESS) {
       return false;
     }
@@ -276,7 +242,8 @@ bool VulkanRenderer::CreateCommandBuffers()
 
 bool VulkanRenderer::RecreateSwapChain()
 {
-  return vkDeviceWaitIdle(device->device) && CreateSwapChain() && SetupImageViews() && CreateFrameBuffers();
+  return vkDeviceWaitIdle(device->device) && swapchain->Rebuild(physicalDevice, device)
+         && swapchain->LoadImageViews(device) && CreateFrameBuffers();
 }
 
 bool VulkanRenderer::CopyBuffer(VkBuffer src, VkBuffer dst, VkDeviceSize size)
@@ -366,6 +333,7 @@ VkBuffer VulkanRenderer::CreateBuffer(VkDeviceSize          size,
 
   return buffer;
 }
+
 bool VulkanRenderer::CreateVertexBuffer(VkBuffer& buffer, VkDeviceMemory& memory, VkDeviceSize size, void* data)
 {
   VkDeviceMemory bufferMemory;

@@ -14,7 +14,6 @@
 #include "obj_model.h"
 #include "physical_device.h"
 #include "shader.h"
-#include "surface.h"
 #include "swapchain.h"
 
 namespace NycaTech::Renderer {
@@ -37,8 +36,6 @@ public:
   PhysicalDevice*       physicalDevice;
   Device*               device;
   SwapChain*            swapchain;
-  Vector<VkImage>       queuedFrames;
-  Vector<VkImageView>   queuedFrameViews;
   VkPipelineLayout      pipelineLayout;
   VkPipeline            pipeline;
   VkRenderPass          renderPass;
@@ -50,11 +47,8 @@ public:
   VkFence               inFlightFence;
   Vector<ObjModel*>     models;
   Vector<Shader*>       shaders;
-  Uint32                currentFrame;
 
 private:
-  bool CreateSwapChain();
-  bool SetupImageViews();
   bool CreateFrameBuffers();
   bool CreateSynch();
   bool RecordCommandBuffer(VkCommandBuffer, Uint32);
