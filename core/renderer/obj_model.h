@@ -7,8 +7,9 @@
 
 #include <vulkan/vulkan.h>
 
+#include "lib/types.h"
+#include "lib/vector.h"
 #include "tiny_obj_loader.h"
-#include "types.h"
 
 namespace NycaTech {
 

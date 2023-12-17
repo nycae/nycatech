@@ -4,6 +4,8 @@
 
 #ifndef VECTOR_H
 #define VECTOR_H
+
+#include "types.h"
 #include <cstdlib>
 #include <functional>
 
@@ -13,13 +15,18 @@ namespace NycaTech {
 #define INLINE_LIB inline
 #endif
 
-typedef uint32_t Uint32;
-
 template <typename T>
 class Vector {
 public:
-  explicit Vector(Uint32 count = 0);
-  Vector& operator=(std::vector<T>);
+  INLINE_LIB explicit Vector(Uint32 count = 0);
+  INLINE_LIB explicit Vector(std::initializer_list<T> init);
+
+  INLINE_LIB Vector(Vector&& other);
+  INLINE_LIB Vector(const Vector& other);
+
+  INLINE_LIB Vector& operator=(Vector&& other);
+  INLINE_LIB Vector& operator=(const Vector& other);
+  INLINE_LIB Vector& operator=(std::vector<T>);
 
 public:
   INLINE_LIB bool     Resize(Uint32 newSize);
@@ -31,7 +38,7 @@ public:
   INLINE_LIB T&       operator[](Uint32 index);
   INLINE_LIB const T& operator[](Uint32 index) const;
   INLINE_LIB Uint32   Capacity() const;
-  INLINE_LIB Uint32&  Count();
+  INLINE_LIB Uint32&  CountMut();
   INLINE_LIB Uint32   Count() const;
   INLINE_LIB void     OverrideCount(Uint32 newSize);
   INLINE_LIB T*       Data();
@@ -39,6 +46,7 @@ public:
   INLINE_LIB bool     Contains(const T& other) const;
   INLINE_LIB bool     Contains(std::function<bool(const T&)>) const;
   INLINE_LIB bool     IsEmpty() const;
+  INLINE_LIB Uint32   ElemSize() const;
 
 public:
   INLINE_LIB T*       begin();
@@ -59,12 +67,50 @@ INLINE_LIB Vector<T>::Vector(Uint32 initCount)
 }
 
 template <typename T>
+Vector<T>::Vector(std::initializer_list<T> init)
+{
+  for (const auto& elem : init) {
+    this->Insert(elem);
+  }
+}
+template <typename T>
+Vector<T>::Vector(Vector&& other)
+{
+  *this = (Vector&&) other;
+}
+
+template <typename T>
+Vector<T>::Vector(const Vector& other)
+{
+  *this = other;
+}
+
+template <typename T>
+Vector<T>& Vector<T>::operator=(Vector&& other)
+{
+  *this = other;
+  delete &other;
+  return *this;
+}
+
+template <typename T>
+Vector<T>& Vector<T>::operator=(const Vector& other)
+{
+  const auto byteSize = other.Count() * sizeof(T);
+  size = other.size;
+  count = other.count;
+  data = (T*)malloc(byteSize);
+  memcpy(data, other.data, byteSize);
+  return *this;
+}
+
+template <typename T>
 Vector<T>& Vector<T>::operator=(std::vector<T> other)
 {
-  data = (T*) malloc(sizeof(T)*other.size());
+  data = (T*)malloc(sizeof(T) * other.size());
   count = other.size();
   size = other.capacity();
-  memcpy(data, other.data(), sizeof(T)*other.size());
+  memcpy(data, other.data(), sizeof(T) * other.size());
   return *this;
 }
 
@@ -149,7 +195,7 @@ void Vector<T>::OverrideCount(Uint32 newSize)
 }
 
 template <typename T>
-Uint32& Vector<T>::Count()
+Uint32& Vector<T>::CountMut()
 {
   return count;
 }
@@ -192,6 +238,12 @@ template <typename T>
 bool Vector<T>::IsEmpty() const
 {
   return count <= 0;
+}
+
+template <typename T>
+Uint32 Vector<T>::ElemSize() const
+{
+  return sizeof(T);
 }
 
 template <typename T>

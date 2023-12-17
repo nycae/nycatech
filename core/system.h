@@ -6,7 +6,7 @@
 #define SYSTEM_H
 
 #include "entity.h"
-#include "types.h"
+#include "lib/types.h"
 
 namespace NycaTech {
 

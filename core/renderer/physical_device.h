@@ -7,26 +7,32 @@
 
 #include <vulkan/vulkan.h>
 
+#include "../lib/types.h"
 #include "lib/vector.h"
-#include "types.h"
+#include "surface.h"
 #include "vulkan_instance.h"
 
 namespace NycaTech::Renderer {
 
 class PhysicalDevice final {
 public:
-  ~PhysicalDevice();
+  ~PhysicalDevice() = default;
    PhysicalDevice(PhysicalDevice&&) = delete;
    PhysicalDevice(const PhysicalDevice&) = delete;
 
   PhysicalDevice&&      operator=(PhysicalDevice&&) = delete;
   const PhysicalDevice& operator=(const PhysicalDevice&) = delete;
 
+public:
+  Vector<Uint32> GraphicsQueueIndices() const;
+  Vector<Uint32> PresentationQueueIndices(const Surface* surface) const;
+  Vector<Uint32> CompleteQueueIndices(const Surface* surface) const;
+
 private:
-  PhysicalDevice();
+  PhysicalDevice() = default;
 
 public:
-  static Vector<PhysicalDevice*> DevicesWithExtensions(VulkanInstance* instance, const Vector<const char*>& extensions);
+  static Vector<PhysicalDevice*> SuitableDevices(VulkanInstance* instance);
 
 private:
   static const Vector<PhysicalDevice*>& GetAllPhysicalDevices(VulkanInstance* instance);
@@ -36,7 +42,9 @@ private:
   bool HasValidExtensions(const Vector<const char*>& extensions);
 
 public:
-  VkPhysicalDevice device;
+  VkPhysicalDevice                device;
+  Vector<VkQueueFamilyProperties> familyProperties;
+
 };
 
 }  // namespace NycaTech::Renderer

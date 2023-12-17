@@ -5,6 +5,9 @@
 
 #include <iostream>
 
+#include "core\renderer\swapchain.h"
+#include "lib/assert.h"
+#include "renderer/device.h"
 #include "renderer/obj_model.h"
 #include "renderer/vulkan_renderer.h"
 
@@ -24,10 +27,23 @@ int main(int argc, char* argv[])
     return EXIT_FAILURE;
   }
 
-  VulkanRenderer renderer(window);
-  ObjModel*      teapot = ObjModel::FromFile("../assets/teapot.obj");
-  Shader*        vertexShader = Shader::VertexFromFile("../assets/vert.spv", renderer.device);
-  Shader*        fragmentShader = Shader::FragmentFromFile("../assets/frag.spv", renderer.device);
+  VulkanInstance* instance = VulkanInstance::Create(window);
+  PhysicalDevice* physicalDevice = PhysicalDevice::SuitableDevices(instance)[0];
+  Surface*        surface = Surface::Create(instance, window);
+  Device*         device = Device::Create(physicalDevice, surface);
+  SwapChain*      swapchain = SwapChain::Create(physicalDevice, surface, device);
+
+  Assert(instance, "invalid instance");
+  Assert(physicalDevice, "invalid physical device");
+  Assert(surface, "invalid surface");
+  Assert(device, "invalid device");
+  Assert(swapchain, "invalid swapchain")
+
+  VulkanRenderer* renderer = VulkanRenderer::Create(physicalDevice, swapchain, device);
+
+  ObjModel* teapot = ObjModel::FromFile("../assets/teapot.obj");
+  Shader*   vertexShader = Shader::VertexFromFile("../assets/vert.spv", device->device);
+  Shader*   fragmentShader = Shader::FragmentFromFile("../assets/frag.spv", device->device);
 
   teapot->Scale(0.2, 0.3, 0.3);
   // teapot->Rotate(2.8, 0.0, 0.0);
@@ -37,11 +53,12 @@ int main(int argc, char* argv[])
     throw RuntimeError("unable to load assets!");
   }
 
-  if (!renderer.AttachShader(vertexShader) || !renderer.AttachShader(fragmentShader) || !renderer.LoadModel(teapot)) {
+  if (!renderer->AttachShader(vertexShader) || !renderer->AttachShader(fragmentShader)
+      || !renderer->LoadModel(teapot)) {
     throw RuntimeError("unable to attach assets!");
   }
 
-  if (!renderer.PrepareRendering()) {
+  if (!renderer->PrepareRendering()) {
     throw RuntimeError("unable to setup renderer!");
   }
 
@@ -57,7 +74,7 @@ int main(int argc, char* argv[])
         running = !running;
       }
     }
-    if (!renderer.DrawFrame()) {
+    if (!renderer->DrawFrame()) {
       throw RuntimeError("Error drawing frames");
     }
     sleep_until(last_frame + milliseconds(12));

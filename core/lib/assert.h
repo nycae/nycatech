@@ -5,9 +5,9 @@
 #ifndef ASSERT_H
 #define ASSERT_H
 
-#include <cerrno>
 
 namespace NycaTech {
+
 inline const char* ErrorMessage;
 
 #define AssertReturnFalse(cond, msg) \
@@ -22,7 +22,7 @@ inline const char* ErrorMessage;
     return nullptr;                 \
   }
 
-#ifdef DEBUG
+#ifndef RELEASE
 
 #define Assert(cond, msg)    \
   if (!cond) {               \
@@ -34,6 +34,7 @@ inline const char* ErrorMessage;
 #define Assert(cond, msg) cond
 
 #endif
+
 };  // namespace NycaTech
 
 #endif  // ASSERT_H

@@ -12,8 +12,6 @@ target_link_libraries(
 add_executable(
   Client
     client.cc
-  lib/vector.h
-  lib/pair.h
 )
 
 target_link_libraries(
@@ -23,9 +21,6 @@ target_link_libraries(
 
 set(USE_VULKAN ON)
 
-find_package(OpenGL REQUIRED)
-find_package(GLEW REQUIRED)
-find_package(Vulkan REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(SDL2 REQUIRED)
@@ -33,7 +28,6 @@ find_package(SDL2 REQUIRED)
 add_library(
   Core
     STATIC
-      types.h
       world.cc
       world.h
       entity.cc
@@ -46,15 +40,22 @@ add_library(
       renderer/obj_model.h
       renderer/vulkan_renderer.cc
       renderer/vulkan_renderer.h
-  renderer/shader.cc
+      renderer/shader.cc
       renderer/shader.h
-  renderer/render_pipeline.cc
-  renderer/render_pipeline.h
-  renderer/physical_device.cc
-  renderer/physical_device.h
-  lib/assert.h
-  renderer/vulkan_instance.cc
-  renderer/vulkan_instance.h
+      renderer/render_pipeline.cc
+      renderer/render_pipeline.h
+      renderer/physical_device.cc
+      renderer/physical_device.h
+      renderer/vulkan_instance.cc
+      renderer/vulkan_instance.h
+      renderer/surface.cc
+      renderer/surface.h
+      renderer/device.cc
+      renderer/device.h
+      renderer/vulkan_queue.cc
+      renderer/vulkan_queue.h
+  renderer/swapchain.cc
+  renderer/swapchain.h
 )
 
 target_link_libraries(
@@ -63,8 +64,6 @@ target_link_libraries(
       Vulkan::Vulkan
       ${Protobuf_LIBRARIES}
       SDL2::SDL2
-      GLEW::GLEW
-      opengl32
     INTERFACE
       tinyobjloader::tinyobjloader
 )
@@ -72,8 +71,6 @@ target_link_libraries(
 target_include_directories(
   Core
     PUBLIC
-      ${GLEW_LIBRARIES}
-      ${OPENGL_LIBRARIES}
       ${Protobuf_INCLUDE_DIRS}
       ${SDL2_INCLUDE_DIRS}
       Vulkan::Vulkan

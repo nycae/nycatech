@@ -6,7 +6,7 @@
 #define SHADER_H
 #include <vulkan/vulkan_core.h>
 
-#include "types.h"
+#include "../lib/types.h"
 
 namespace NycaTech::Renderer {
 

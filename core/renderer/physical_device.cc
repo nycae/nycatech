@@ -6,20 +6,52 @@
 
 namespace NycaTech::Renderer {
 
-PhysicalDevice::~PhysicalDevice()
+Vector<PhysicalDevice*> PhysicalDevice::physicalDevices;
+
+Vector<Uint32> PhysicalDevice::GraphicsQueueIndices() const
 {
+  Vector<Uint32> indices;
+  for (Uint32 i = 0; i < familyProperties.Count(); i++) {
+    const auto properties = familyProperties[i];
+    if (properties.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+      indices.Insert(i);
+    }
+  }
+  return indices;
 }
 
-PhysicalDevice::PhysicalDevice()
+Vector<Uint32> PhysicalDevice::PresentationQueueIndices(const Surface* surface) const
 {
+  Vector<Uint32> indices;
+  for (Uint32 i = 0; i < familyProperties.Count(); i++) {
+    VkBool32 canPresent;
+    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface->surface, &canPresent);
+    if (canPresent) {
+      indices.Insert(i);
+    }
+  }
+  return indices;
 }
 
-Vector<PhysicalDevice*> PhysicalDevice::DevicesWithExtensions(VulkanInstance* instance,
-                                                              const Vector<const char*>& extensions)
+Vector<Uint32> PhysicalDevice::CompleteQueueIndices(const Surface* surface) const
+{
+  Vector<Uint32> indices;
+  for (Uint32 i = 0; i < familyProperties.Count(); i++) {
+    VkBool32 canPresent;
+    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface->surface, &canPresent);
+    const auto canDoGraphics = familyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
+    if (canDoGraphics && canPresent) {
+      indices.Insert(i);
+    }
+  }
+  return indices;
+}
+
+Vector<PhysicalDevice*> PhysicalDevice::SuitableDevices(VulkanInstance* instance)
 {
   Vector<PhysicalDevice*> devices;
-  for (const auto& device: GetAllPhysicalDevices(instance)) {
-    if (device->HasValidExtensions(extensions)) {
+  for (const auto& device : GetAllPhysicalDevices(instance)) {
+    if (device->HasValidExtensions(instance->Extensions)) {
       devices.Insert(device);
     }
   }
@@ -33,9 +65,14 @@ const Vector<PhysicalDevice*>& PhysicalDevice::GetAllPhysicalDevices(VulkanInsta
     vkEnumeratePhysicalDevices(instance->instance, &pdCount, nullptr);
     Vector<VkPhysicalDevice> vkDevices(pdCount);
     vkEnumeratePhysicalDevices(instance->instance, &pdCount, vkDevices.Data());
-    for (const auto& vkDevice: vkDevices) {
+    for (const auto& vkDevice : vkDevices) {
       auto device = new PhysicalDevice();
       device->device = vkDevice;
+
+      vkGetPhysicalDeviceQueueFamilyProperties(device->device, &device->familyProperties.CountMut(), nullptr);
+      device->familyProperties.AdjustSize();
+      vkGetPhysicalDeviceQueueFamilyProperties(
+          device->device, &device->familyProperties.CountMut(), device->familyProperties.Data());
       physicalDevices.Insert(device);
     }
   }
@@ -44,23 +81,19 @@ const Vector<PhysicalDevice*>& PhysicalDevice::GetAllPhysicalDevices(VulkanInsta
 
 bool PhysicalDevice::HasValidExtensions(const Vector<const char*>& extensions)
 {
-  Uint32 extensionCount;
-  vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-  Vector<VkExtensionProperties> deviceExtensions(extensionCount);
-  vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, deviceExtensions.Data());
+  Vector<VkExtensionProperties> deviceExtensions;
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensions.CountMut(), nullptr);
+  deviceExtensions.AdjustSize();
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &deviceExtensions.CountMut(), deviceExtensions.Data());
 
-  auto comparate = [](const char*& extensionName) {
-    return [&extensionName](const VkExtensionProperties& other) {
-      return strcmp(other.extensionName, extensionName) == 0;
-    };
-  };
-
-  for (auto extension : extensions) {
-    if (!deviceExtensions.Contains(comparate(extension))) {
-      return false;
+  for (const auto& extension : extensions) {
+    auto compare
+        = [&extension](const auto& deviceExtension) { return strcmp(extension, deviceExtension.extensionName) == 0; };
+    if (deviceExtensions.Contains(compare)) {
+      return true;
     }
   }
-  return true;
+  return false;
 }
 
 }  // namespace NycaTech::Renderer

@@ -5,7 +5,7 @@
 #ifndef COMPONENT_H
 #define COMPONENT_H
 
-#include "types.h"
+#include "lib/types.h"
 
 namespace NycaTech {
 

@@ -5,7 +5,7 @@
 #include <grpc++/grpc++.h>
 
 #include "benchmark.grpc.pb.h"
-#include "types.h"
+#include "lib/types.h"
 
 using namespace grpc;
 using namespace NycaTech;

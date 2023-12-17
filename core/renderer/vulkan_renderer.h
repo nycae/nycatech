@@ -9,10 +9,13 @@
 #include <SDL2/SDL.h>
 #include <vulkan/vulkan.h>
 
+#include "device.h"
+#include "lib/types.h"
 #include "obj_model.h"
 #include "physical_device.h"
 #include "shader.h"
-#include "types.h"
+#include "surface.h"
+#include "swapchain.h"
 
 namespace NycaTech::Renderer {
 
@@ -24,23 +27,18 @@ public:
   bool PrepareRendering();
   bool DrawFrame();
 
-public:
-  static VulkanRenderer* Create(PhysicalDevice* physicalDevice);
+private:
+  VulkanRenderer() = default;
 
 public:
-  VkInstance            instance;
-  VkPhysicalDevice      physicalDevice;
-  VkDevice              device;
-  Uint32                graphicsQueueIndex;
-  VkQueue               graphicsQueue;
-  Uint32                presentQueueIndex;
-  VkQueue               presentQueue;
-  VkSurfaceKHR          surface;
-  VkSwapchainKHR        swapchain;
+  static VulkanRenderer* Create(PhysicalDevice* physicalDevice, SwapChain* swapchain, Device* device);
+
+public:
+  PhysicalDevice*       physicalDevice;
+  Device*               device;
+  SwapChain*            swapchain;
   Vector<VkImage>       queuedFrames;
   Vector<VkImageView>   queuedFrameViews;
-  VkFormat              imageFormat;
-  VkExtent2D            extent;
   VkPipelineLayout      pipelineLayout;
   VkPipeline            pipeline;
   VkRenderPass          renderPass;
@@ -55,10 +53,6 @@ public:
   Uint32                currentFrame;
 
 private:
-  bool CreateInstance(SDL_Window* window);
-  bool ChoosePhysicalDevice();
-  bool CreateDevice();
-  bool SuitableQueuesFound();
   bool CreateSwapChain();
   bool SetupImageViews();
   bool CreateFrameBuffers();

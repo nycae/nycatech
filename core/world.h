@@ -6,8 +6,8 @@
 #define WORLD_H
 
 #include "entity.h"
+#include "lib/types.h"
 #include "system.h"
-#include "types.h"
 
 namespace NycaTech {
 

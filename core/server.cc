@@ -4,9 +4,9 @@
 
 #include "server.h"
 
-#include "types.h"
-
 #include <grpc++/grpc++.h>
+
+#include "lib/types.h"
 
 namespace NycaTech {
 

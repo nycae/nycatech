@@ -6,6 +6,7 @@
 #define ENTITY_H
 
 #include "component.h"
+#include "lib/vector.h"
 
 namespace NycaTech {
 
