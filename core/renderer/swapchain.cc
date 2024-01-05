@@ -22,7 +22,7 @@ VkSurfaceFormatKHR ChooseFormat(const Vector<VkSurfaceFormatKHR>& formats)
     }
   }
   return formats[0];
-};
+}
 
 VkPresentModeKHR ChooseMode(const Vector<VkPresentModeKHR>& modes)
 {
@@ -32,7 +32,7 @@ VkPresentModeKHR ChooseMode(const Vector<VkPresentModeKHR>& modes)
     }
   }
   return VK_PRESENT_MODE_FIFO_KHR;
-};
+}
 
 VkExtent2D GetExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
@@ -40,7 +40,7 @@ VkExtent2D GetExtent(const VkSurfaceCapabilitiesKHR& capabilities)
     return capabilities.currentExtent;
   }
   return VkExtent2D{ 1600, 900 };
-};
+}
 
 SwapChain* SwapChain::Create(const PhysicalDevice* physicalDevice, const Surface* surface, const Device* device)
 {
@@ -101,7 +101,7 @@ bool SwapChain::Rebuild(const PhysicalDevice* physicalDevice, const Device* devi
   Self.format = ChooseFormat(formats);
   Self.extent = GetExtent(capabilities);
 
-  Uint32 indices[] = { device->presentQueue->index, device->graphicsQueue->index };
+  const Uint32 indices[] = { device->presentQueue->index, device->graphicsQueue->index };
 
   VkSwapchainCreateInfoKHR info{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
   info.surface = surface->surface;

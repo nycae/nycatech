@@ -4,34 +4,23 @@
 
 #ifndef SHADER_H
 #define SHADER_H
-#include <vulkan/vulkan_core.h>
 
-#include "../lib/types.h"
+#include "lib/types.h"
 
 namespace NycaTech::Renderer {
 
-class Shader {
-public:
+struct Shader {
   enum Type : Uint32 {
     VERTEX = 0x00000001,
     FRAGMENT = 0x00000002,
   };
 
-private:
-  explicit Shader(Type, VkDevice);
+  explicit Shader(Type type, const char* filePath);
+  ~        Shader();
 
-public:
-  VkShaderModule module;
-  VkDevice       uploadedTo;
-  Type           type;
-
-public:
-  ~              Shader();
-  static Shader* VertexFromFile(const char* filepath, VkDevice device);
-  static Shader* FragmentFromFile(const char* filepath, VkDevice device);
-
-private:
-  static bool FromFile(const char* filepath, Shader* shader);
+  Type   type;
+  char*  content;
+  Uint64 length;
 };
 
 }  // namespace NycaTech::Renderer

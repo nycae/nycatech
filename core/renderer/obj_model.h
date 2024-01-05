@@ -33,6 +33,7 @@ public:
   static VkVertexInputAttributeDescription GetVkVertexInputAttributeDescription();
 
 public:
+  Transform       transform;
   VkBuffer        vertexBuffer;
   VkDeviceMemory  vertexMemory;
   VkBuffer        indexBuffer;
