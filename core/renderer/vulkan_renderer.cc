@@ -6,6 +6,9 @@
 
 #include <SDL2/SDL_vulkan.h>
 #include <lib/assert.h>
+#include <lib/uniform.h>
+
+#include <filesystem>
 
 namespace NycaTech::Renderer {
 
@@ -23,14 +26,20 @@ VulkanRenderer::VulkanRenderer()
   Assert(CreatePhysicalDevice(), "unable to create physical device");
   Assert(CreateLogicalDevice(), "unable to create logical device");
   Assert(CreateSwapChain(), "unable to create swapchain");
-  Assert(CreateImageViews(), "uable to create image views");
-
-  // Assert(CreateRenderPass(), "unable to create render pass");
-  // Assert(CreateCommandPool(), "unable to create command pool");
+  Assert(CreateImageViews(), "unable to create image views");
+  Assert(CreateRenderPass(), "unable to create reneder pass");
+  Assert(CreateGraphicsPipeline(), "unable to create graphics pipeline");
+  Assert(CreateFrameBuffers(), "unable to create framebuffers");
+  Assert(CreateCommandPool(), "unable to create command pool");
+  Assert(CreateCommandBuffers(), "unable to create command buffers");
 }
 
 VulkanRenderer::~VulkanRenderer()
 {
+  vkDestroyCommandPool(device, commandPool, nullptr);
+  for (auto& frameBuffer: frameBuffers) {
+    vkDestroyFramebuffer(device, frameBuffer, nullptr);
+  }
   for (auto& model : models) {
     vkFreeMemory(device, model->indexMemory, nullptr);
     vkFreeMemory(device, model->vertexMemory, nullptr);
@@ -43,12 +52,12 @@ VulkanRenderer::~VulkanRenderer()
   for (auto& shader : fragmentShaders) {
     vkDestroyShaderModule(device, shader, nullptr);
   }
-  for (const auto& image : images) {
-    vkDestroyImage(device, image, nullptr);
-  }
   for (const auto& imageView : imageViews) {
     vkDestroyImageView(device, imageView, nullptr);
   }
+  vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+  vkDestroyRenderPass(device, renderPass, nullptr);
+  vkDestroyPipeline(device, pipeline, nullptr);
   vkDestroySwapchainKHR(device, swapchain, nullptr);
   vkDestroyDevice(device, nullptr);
   vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -91,8 +100,7 @@ bool VulkanRenderer::CreateInstance()
   createInfo.enabledExtensionCount = names.Count();
   createInfo.ppEnabledExtensionNames = names.Data();
 
-  AssertReturnFalse(vkCreateInstance(&createInfo, nullptr, &instance) == VK_SUCCESS,
-                    "unable to create vulkan instance");
+  AssertVKReturnFalse(vkCreateInstance(&createInfo, nullptr, &instance), "unable to create vulkan instance");
   return true;
 }
 
@@ -256,6 +264,7 @@ bool VulkanRenderer::CreateSwapChain()
   vkGetSwapchainImagesKHR(device, swapchain, &images.CountMut(), nullptr);
   images.AdjustSize();
   vkGetSwapchainImagesKHR(device, swapchain, &images.CountMut(), images.Data());
+  swapChainImageFormat = format.format;
   return true;
 }
 
@@ -295,6 +304,22 @@ bool VulkanRenderer::CreateImageViews()
     info.subresourceRange.layerCount = 1;
     AssertVKReturnFalse(vkCreateImageView(device, &info, nullptr, &imageViews[i]), "unable to load images views");
   }
+  return true;
+}
+
+bool VulkanRenderer::CreateGraphicsPipeline()
+{
+  std::filesystem::path cwd = std::filesystem::current_path() / "filename.txt";
+  std::ofstream         file(cwd.string());
+  file.close();
+  const Shader vertex(Shader::Type::VERTEX, "../assets/vert.spv");
+  const Shader fragment(Shader::Type::FRAGMENT, "../assets/frag.spv");
+
+  AssertReturnFalse(AttachShader(vertex), "unable to attach vertex shader");
+  AssertReturnFalse(AttachShader(fragment), "unable to attach fragment shader");
+
+  CreateRenderPipeline();
+
   return true;
 }
 
@@ -410,9 +435,8 @@ bool VulkanRenderer::CreateRenderPipeline()
   info.subpass = 0;
   info.basePipelineHandle = VK_NULL_HANDLE;
 
-  if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline) != VK_SUCCESS) {
-    return false;
-  }
+  AssertVKReturnFalse(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline),
+                      "unable to create graphicsPipeline");
 
   return true;
 }
@@ -472,25 +496,24 @@ bool VulkanRenderer::DrawFrame()
 
 bool VulkanRenderer::CreateFrameBuffers()
 {
-  //   frameBuffer.Resize(swapchain->imageViews.Count());
-  //   frameBuffer.OverrideCount(swapchain->imageViews.Count());
-  //   for (Uint32 i = 0; i < swapchain->imageViews.Count(); i++) {
-  //     VkFramebufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-  //     bufferInfo.renderPass = renderPass;
-  //     bufferInfo.attachmentCount = 1;
-  //     bufferInfo.pAttachments = &swapchain->imageViews[i];
-  //     bufferInfo.width = swapchain->extent.width;
-  //     bufferInfo.height = swapchain->extent.height;
-  // #ifdef DEBUG
-  //     bufferInfo.layers = VulkanRenderer::Layers.Count();
-  // #endif
-  //
-  //     if (vkCreateFramebuffer(device, &bufferInfo, nullptr, &frameBuffer[i]) != VK_SUCCESS) {
-  //       return false;
-  //     }
-  //   }
-  //   return true;
-  return false;
+    frameBuffers.Resize(imageViews.Count());
+    frameBuffers.OverrideCount(imageViews.Count());
+    for (Uint32 i = 0; i < imageViews.Count(); i++) {
+      VkFramebufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+      bufferInfo.renderPass = renderPass;
+      bufferInfo.attachmentCount = 1;
+      bufferInfo.pAttachments = &imageViews[i];
+      bufferInfo.width = extent.width;
+      bufferInfo.height = extent.height;
+  #ifdef DEBUG
+      bufferInfo.layers = VulkanRenderer::Layers.Count();
+  #endif
+
+      if (vkCreateFramebuffer(device, &bufferInfo, nullptr, &frameBuffers[i]) != VK_SUCCESS) {
+        return false;
+      }
+    }
+    return true;
 }
 
 bool VulkanRenderer::CreateSynch()
@@ -531,18 +554,17 @@ bool VulkanRenderer::RecreateSwapChain()
 
 bool VulkanRenderer::CreateUniformBuffers()
 {
-  // const VkDeviceSize bufferSize = sizeof(Uniform);
-  // for (Uint32 i = 0; i < swapchain->images.Count(); i++) {
-  //   const auto buffer = CreateBuffer(bufferSize,
-  //                                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-  //                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-  //                                    uniformBuffersMemory[i]);
-  //   AssertReturnFalse(buffer, "unable to create uniform buffer");
-  //   uniformBuffers[i] = buffer;
-  //   vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
-  // }
-  // return true;
-  return false;
+  const VkDeviceSize bufferSize = sizeof(Uniform);
+  for (Uint32 i = 0; i < images.Count(); i++) {
+    const auto buffer = CreateBuffer(bufferSize,
+                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                     uniformBuffersMemory[i]);
+    AssertReturnFalse(buffer, "unable to create uniform buffer");
+    uniformBuffers[i] = buffer;
+    vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+  }
+  return true;
 }
 
 bool VulkanRenderer::CopyBuffer(VkBuffer src, VkBuffer dst, VkDeviceSize size)
@@ -678,14 +700,13 @@ bool VulkanRenderer::CreateIndexBuffer(VkBuffer& buffer, VkDeviceMemory& memory,
 bool VulkanRenderer::RecordCommandBuffer(VkCommandBuffer command, Uint32 imageIndex)
 {
   VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-  if (vkBeginCommandBuffer(command, &beginInfo) != VK_SUCCESS) {
-    return false;
-  }
+
+  AssertVKReturnFalse(vkBeginCommandBuffer(command, &beginInfo), "unable to begin command pass");
 
   VkClearValue          clearColor{ { { 0.0f, 0.0f, 0.0f, 1.0f } } };
   VkRenderPassBeginInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
   renderPassInfo.renderPass = renderPass;
-  renderPassInfo.framebuffer = frameBuffer[imageIndex];
+  renderPassInfo.framebuffer = frameBuffers[imageIndex];
   renderPassInfo.renderArea.offset = { 0, 0 };
   renderPassInfo.renderArea.extent = extent;
   renderPassInfo.clearValueCount = 1;
@@ -715,7 +736,7 @@ bool VulkanRenderer::RecordCommandBuffer(VkCommandBuffer command, Uint32 imageIn
 bool VulkanRenderer::CreateRenderPass()
 {
   VkAttachmentDescription colorAttachment{};
-  // colorAttachment.format = swapchain->format.format;
+  colorAttachment.format = swapChainImageFormat;
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

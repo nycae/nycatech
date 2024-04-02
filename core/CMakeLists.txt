@@ -35,6 +35,12 @@ add_library(
       renderer/obj_model.cc
       renderer/vulkan_renderer.cc
       renderer/shader.cc
+  renderer/renderer.h
+      math/matrix.h
+      lib/vec.cc
+  math/vec.h
+  renderer/gl_renderer.cc
+  renderer/gl_renderer.h
 )
 
 target_link_libraries(

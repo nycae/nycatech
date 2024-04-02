@@ -35,7 +35,7 @@ public:
   inline static const Vector Layers{ "VK_LAYER_KHRONOS_validation" };
 #endif
 
-public:
+private:
   SDL_Window*            window;
   VkInstance             instance;
   VkPhysicalDevice       physicalDevice;
@@ -46,6 +46,7 @@ public:
   VkQueue                graphicsQueue;
   VkQueue                presentQueue;
   VkSwapchainKHR         swapchain;
+  VkFormat               swapChainImageFormat;
   Vector<VkImage>        images;
   Vector<VkImageView>    imageViews;
   VkSurfaceFormatKHR     format;
@@ -54,7 +55,7 @@ public:
   VkPipelineLayout       pipelineLayout;
   VkPipeline             pipeline;
   VkRenderPass           renderPass;
-  Vector<VkFramebuffer>  frameBuffer;
+  Vector<VkFramebuffer>  frameBuffers;
   VkCommandPool          commandPool;
   VkCommandBuffer        command;
   VkSemaphore            imageMutex;
@@ -63,9 +64,9 @@ public:
   Vector<ObjModel*>      models;
   Vector<VkShaderModule> vertexShaders;
   Vector<VkShaderModule> fragmentShaders;
-  VkBuffer               uniformBuffers[3];
-  VkDeviceMemory         uniformBuffersMemory[3];
-  void*                  uniformBuffersMapped[3];
+  Vector<VkBuffer>       uniformBuffers;
+  Vector<VkDeviceMemory> uniformBuffersMemory;
+  Vector<void*>          uniformBuffersMapped;
 
 private:
   bool               SetupWindow();
@@ -80,6 +81,7 @@ private:
   VkSurfaceFormatKHR ChooseFormat(const Vector<VkSurfaceFormatKHR>& formats);
   VkPresentModeKHR   ChooseMode(const Vector<VkPresentModeKHR>& modes);
   bool               CreateImageViews();
+  bool               CreateGraphicsPipeline();
   bool               CreateFrameBuffers();
   bool               CreateSynch();
   bool               RecordCommandBuffer(VkCommandBuffer, Uint32);

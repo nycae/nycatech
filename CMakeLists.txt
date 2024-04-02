@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(protos)
 add_subdirectory(core)
+add_subdirectory(shaders)
 
 add_executable(
   NycaTech

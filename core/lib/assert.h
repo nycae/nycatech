@@ -50,7 +50,7 @@ inline const char* ErrorMessage;
 #define AssertReturnNull(cond, msg) cond;
 #define Assert(cond, msg) cond;
 #define AssertVKReturnNull(cond, msg) cond;
-#define AssertVKReturnNull(cond, msg) cond;
+#define AssertVKReturnFalse(cond, msg) cond;
 #endif
 
 };  // namespace NycaTech

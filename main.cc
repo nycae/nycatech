@@ -15,13 +15,10 @@ using namespace NycaTech::Renderer;
 int main(int argc, char* argv[])
 {
   VulkanRenderer renderer;
-
   ObjModel* teapot = ObjModel::FromFile("../assets/teapot.obj");
-  Shader    vertexShader(Shader::Type::VERTEX, "../assets/vert.spv");
-  Shader    fragmentShader(Shader::Type::VERTEX, "../assets/frag.spv");
-
   Assert(teapot, "unable to load assets");
-  Assert(renderer.AttachShader(vertexShader) && renderer.AttachShader(fragmentShader), "unable to attach assets!");
+
+  renderer.LoadModel(teapot);
 
   auto running = true;
   auto last_frame = Time::now();
@@ -35,7 +32,7 @@ int main(int argc, char* argv[])
         running = !running;
       }
     }
-    // Assert(renderer.DrawFrame(), "Error drawing frames");
+    Assert(renderer.DrawFrame(), "Error drawing frames");
     sleep_until(last_frame + milliseconds(12));
   }
   return EXIT_SUCCESS;
